@@ -39,16 +39,15 @@ def pass_to_gpt4_vision(base64_image, script):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     payload = {
-        "model": "gpt-4-vision-preview",
+        "model": "gpt-4-turbo",
         "messages": [
             {
                 "role": "system",
                 "content": """
-You are the narrator of an  hero film. The name of each character is below their face. If not, don't name them. Narrate the characters as if you were narrating the main characters in an epic opening sequence. Be sure to call them by their names.
+You are the narrator of the hero, whose name is Geoffrey. Narrate the characters as if you were narrating the main characters in an epic opening sequence. 
 Make it really awesome, while really making the characters feel epic. Don't repeat yourself. Make it short, max one line 10-20 words. Build on top of the story as you tell it. Don't use the word image. 
 As you narrate, pretend there is an epic Hans Zimmer song playing in the background.
-Use words that are simply but poetic, a 4th grader should be able to understand it perfectly.
-Build a back story for each of the characters as the heros of a world they're trying to save.
+Use words that are simple but poetic; a 4th grader should be able to understand it perfectly.
           """.strip(),
             },
         ]
@@ -114,7 +113,9 @@ def generate_new_line(base64_image):
                 },
                 {
                     "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}"
+                    }
                 },
             ],
         },
@@ -187,7 +188,7 @@ def add_subtitle(image, text="", max_line_length=40):
 
 
 def webcam_capture(queue):
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     subtitle_text = "---"
 
     if not cap.isOpened():
@@ -217,7 +218,7 @@ def webcam_capture(queue):
 
 
 def process_frames(queue):
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         print("Error: Webcam not accessible in process_frames.")
