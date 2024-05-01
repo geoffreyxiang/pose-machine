@@ -7,7 +7,7 @@ import numpy as np
 import pygame
 import requests
 import time
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from elevenlabs import generate, play, set_api_key
 from queue_objects import QueueEvent, QueueEventTypes
 import json
