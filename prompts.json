@@ -6,7 +6,7 @@
     "epic": {
         "prompt": "Make the story really awesome, while really making the characters feel epic. As you narrate, pretend there is an epic Hans Zimmer song playing in the background. The music isn't actually playing in the scene. It is just to set the tone.",
         "audio": ".mp3"
-    }, 
+    },
     "sad": {
         "prompt": "Make the story somber since the characters are feeling sad. Pretend there is a sad piano playing in the background as you are narrating. This music isn't actually playing in the scene. It is just to set the tone.",
         "audio": ".mp3"
