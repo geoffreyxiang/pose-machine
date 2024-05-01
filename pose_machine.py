@@ -7,7 +7,7 @@ import numpy as np
 import pygame
 import requests
 import time
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from elevenlabs import generate, play, set_api_key
 from queue_objects import QueueEvent, QueueEventTypes
 import json
@@ -26,10 +26,10 @@ set_api_key(ELEVENLABS_API_KEY)
 CAPTURE_TIME_BUFFER = 3
 CAPTURE_EVERY_X_FRAMES = 30 * CAPTURE_TIME_BUFFER
 DEFAULT_START_SUBTITLE = "Hold 's' to begin"
-SENTIMENTS = ["happy", "sad", "epic"]
+SENTIMENTS = ["happy", "epic", "funny", "mysterious"]
 
 def play_music(track_path):
-    print(f"Playing track {track_path}")
+    print(f"Playing track {track_path}") # NOTE: nick wtf is this
     # Initialize pygame mixer
     pygame.mixer.init()
 
@@ -62,7 +62,7 @@ def pass_to_gpt4_vision(base64_images, sentiment):
 The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story.
 Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion.
 You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate. Do not give any characters names. The characters must be nameless.
-There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image.
+There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. In your response, you should only have the 4 paragraphs. 
           """ + get_sentiment_prompt(sentiment)).strip(),
             },
         ]
@@ -74,25 +74,8 @@ There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 word
         "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
     gpt_4_output = response.json()["choices"][0]["message"]["content"]
+    print(f'chosen sentiment: {sentiment}')
     return gpt_4_output
-
-def generate_new_line(base64_image):
-    return [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Describe this scene like you're a narrator in a movie",
-                },
-                {
-                    "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
-                },
-            ],
-        },
-    ]
-
 
 def resize_image(image, max_width=500):
     # Get the dimensions of the image
@@ -178,6 +161,11 @@ def get_sentiment_prompt(sentiment):
         data = json.load(file)
         return data[sentiment]["prompt"]
 
+def get_sentiment_voice_id(sentiment):
+    with open('./prompts.json', 'r') as file:
+        data = json.load(file)
+        return data[sentiment]["voice_id"]
+
 def parse_gpt4_response(text):
     res = text.split('\n\n')
     assert len(res) == 4, f'{len(res)} chunks detected instead of 4'
@@ -219,8 +207,8 @@ def webcam_capture(queue):
         print("Error: Webcam not accessible.")
         return
 
-    cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Webcam", cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("Photo Booth", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Photo Booth", cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
 
     subtitle_text = DEFAULT_START_SUBTITLE
     process_frames_running = False
@@ -302,7 +290,7 @@ def webcam_capture(queue):
                 freeze_frame_until = None
 
         frame_with_subtitle = add_subtitle(frame, frame_count, subtitle_text, show_countdown=(program_running and not process_frames_running))
-        cv2.imshow("Webcam", frame_with_subtitle)
+        cv2.imshow("Photo Booth", frame_with_subtitle)
         # print(frame.shape)
 
 
@@ -340,21 +328,31 @@ def process_frames(conn):
     # print(f"Received payload {payload}")
 
     # payload should be a list of base64 encoded images to pass into gpt4 vision
-    gpt_4_output = pass_to_gpt4_vision(payload["images"], random.choice(SENTIMENTS))
+    chosen_sentiment = random.choice(SENTIMENTS)
+    chosen_sentiment = "mysterious"
+    gpt_4_output = pass_to_gpt4_vision(payload["images"], chosen_sentiment)
 
     subtitles = parse_gpt4_response(gpt_4_output)
     print(subtitles)
 
-
     # generate audio files
-    for i in range(len(subtitles)):
-        audio = generate(subtitles[i], voice=ELEVENLABS_VOICE_ID)
+    audio_success = True
+    try: 
+        for i in range(len(subtitles)):
+            audio = generate(subtitles[i], voice=get_sentiment_voice_id(chosen_sentiment)) 
 
-        with open(f'audio{i}.wav', "wb") as f:
-            f.write(audio)
-
-    # programmatically create and save a video
-    make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
+            with open(f'audio{i}.wav', "wb") as f:
+                print('generating audio for file:', i)
+                f.write(audio)
+    except:
+        # programmatically create and save a video without audio (likely ran out of elevenlabs tokens)
+        print("error generating audio files. likely ran out of elevenlabs tokens. creating video without audio...")
+        audio_success = False
+        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
+        
+    # programmatically create and save a video with audio
+    if audio_success:
+        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
 
     conn.send((QueueEventTypes.PROCESSING_DONE, { "video_file": "./story.mp4" }))
 

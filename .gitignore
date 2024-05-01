@@ -5,3 +5,6 @@ narration/
 frame*.jpg
 audio*.wav
 annotated_frame*.json
+env.py
+story.mp4
+play_video.py
