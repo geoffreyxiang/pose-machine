@@ -93,15 +93,20 @@ def make_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duratio
     # write final video
     final_clip.write_videofile("story.mp4", fps=24)
 
-subtitles = ['In a room filled with energy, a young man flashes a peace sign with a confident smile, setting off on a spirited adventure.', 'The upbeat tempo rises as he switches to one hand, his eyes gleaming with determination and readiness for what’s to come.', 'Caught in a lively rhythm, he ruffles his hair, his expression playful yet focused, hinting at an exciting challenge ahead.', 'The crescendo peaks as he triumphantly holds up a small, victorious object. His journey culminates in this small yet significant triumph, reflected in his satisfied smirk.']
+subtitles = ['a spirited adventure.', 'The upbeat tempo rises.', 'Caught in a lively rhythm.', 'reflected in his satisfied smirk.']
 
 # generate audio files
-# for i in range(len(subtitles)):
-#     audio = generate(subtitles[i], voice=os.environ.get("ELEVENLABS_VOICE_ID"))
+# audio_success = True
+# try: 
+#     for i in range(len(subtitles)):
+#         audio = generate(subtitles[i], voice=os.environ.get("ELEVENLABS_VOICE_ID"))
 
-#     with open(f'audio{i}.wav', "wb") as f:
-#         print('generating for file:', i)
-#         f.write(audio)
+#         with open(f'audio{i}.wav', "wb") as f:
+#             print('generating for file:', i)
+#             f.write(audio)
+# except:
+#     audio_success = False
+#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
 
-# programmatically create and save a video
-make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
+# if audio_success:
+#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=True)

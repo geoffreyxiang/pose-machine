@@ -345,16 +345,24 @@ def process_frames(conn):
     subtitles = parse_gpt4_response(gpt_4_output)
     print(subtitles)
 
-
     # generate audio files
-    for i in range(len(subtitles)):
-        audio = generate(subtitles[i], voice=ELEVENLABS_VOICE_ID)
+    audio_success = True
+    try: 
+        for i in range(len(subtitles)):
+            audio = generate(subtitles[i], voice=ELEVENLABS_VOICE_ID)
 
-        with open(f'audio{i}.wav', "wb") as f:
-            f.write(audio)
-
-    # programmatically create and save a video
-    make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
+            with open(f'audio{i}.wav', "wb") as f:
+                print('generating audio for file:', i)
+                f.write(audio)
+    except:
+        # programmatically create and save a video without audio (likely ran out of elevenlabs tokens)
+        print("error generating audio files. likely ran out of elevenlabs tokens. creating video without audio...")
+        audio_success = False
+        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
+        
+    # programmatically create and save a video with audio
+    if audio_success:
+        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=True)
 
     conn.send((QueueEventTypes.PROCESSING_DONE, { "video_file": "./story.mp4" }))
 
