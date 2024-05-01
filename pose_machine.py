@@ -162,6 +162,7 @@ def webcam_capture(queue):
                 if sentiment_music_playing:
                     sentiment_music_proc.kill()
                 program_running = False
+                images = []
 
                 # TODO: Spawn another process to write the video to slack
 
@@ -230,14 +231,41 @@ def process_frames(conn, chosen_sentiment):
         conn.send((QueueEventTypes.PROCESSING_DONE, {}))
         print("error generating audio files. likely ran out of elevenlabs tokens. creating video without audio...")
         audio_success = False
-        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False, background_music_path=f"{chosen_sentiment}.mp3")
+        video = make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False, background_music_path=f"{chosen_sentiment}.mp3")
 
     # programmatically create and save a video with audio
     if audio_success:
         conn.send((QueueEventTypes.PROCESSING_DONE, {}))
-        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, background_music_path=f"{chosen_sentiment}.mp3")
+        video = make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, background_music_path=f"{chosen_sentiment}.mp3")
 
-    conn.send((QueueEventTypes.VIDEO_DONE, {} ))
+    conn.send((QueueEventTypes.VIDEO_DONE, { } ))
+
+    video.write_videofile("story.mp4", fps=24)
+
+    write_to_slack("story.mp4")
+
+def write_to_slack(video_file):
+    token = 'xoxb-6541988117296-7039279773399-avA0xPClA27kXBbuYbCVoH8n'
+    channels = 'C071KLK6E11' # Channel ID where you want to upload the video
+    file_path = video_file
+    file_name = 'video.mp4'
+
+    with open('story.mp4', 'rb') as file_content:
+        payload = {
+        'channels': channels,
+        'filename': file_name,
+        'title': 'Story',
+        }
+        files = {
+        'file': file_content,
+        }
+        headers = {
+        'Authorization': f'Bearer {token}'
+        }
+        response = requests.post('https://slack.com/api/files.upload', headers=headers, data=payload, files=files)
+
+        print(response.text) # To see the response from Slack
+
 
 def main():
     queue = Queue()
