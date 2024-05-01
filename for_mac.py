@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import pygame
 import requests
+import json
+import random
 from dotenv import load_dotenv
 from elevenlabs import generate, play, set_api_key
 
@@ -35,7 +37,8 @@ def music_process():
     play_music("exit.mp3")  # Replace with your actual file path
 
 
-def pass_to_gpt4_vision(base64_image, script):
+# new function for passing all images and sentiment to gpt4 vision
+def pass_to_gpt4_vision(base64_images, sentiment):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     payload = {
@@ -43,26 +46,24 @@ def pass_to_gpt4_vision(base64_image, script):
         "messages": [
             {
                 "role": "system",
-                "content": """
-You are the narrator of the hero. Narrate the characters as if you were narrating the main characters in an epic opening sequence. 
-Make it really awesome, while really making the characters feel epic. Don't repeat yourself. Make it short, max one line 10-20 words. Build on top of the story as you tell it. Don't use the word image. 
-As you narrate, pretend there is an epic Hans Zimmer song playing in the background.
-Use words that are simple but poetic; a 4th grader should be able to understand it perfectly.
-          """.strip(),
+                "content": ("""
+The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story. 
+Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion. 
+You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate. 
+There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. Use words that are simple. 
+          """ + get_sentiment_prompt(sentiment)).strip(),
             },
         ]
-        + script
-        + generate_new_line(base64_image),
+        + format_images_for_gpt4_vision(base64_images),
         "max_tokens": 300,
     }
-
+    
     response = requests.post(
         "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
     print(response.json())
     gpt_4_output = response.json()["choices"][0]["message"]["content"]
     return gpt_4_output
-
 
 def enhance_image_contrast_saturation(image):
     # Convert to float to prevent clipping values
@@ -102,25 +103,28 @@ def play_audio(text):
     play(audio)
 
 
-def generate_new_line(base64_image):
+def get_sentiment_prompt(sentiment):
+    with open('./prompts.json', 'r') as file:
+        sentiments = json.load(file)
+        return sentiments[sentiment]["prompt"]
+
+
+
+def format_images_for_gpt4_vision(base64_images):
     return [
         {
             "role": "user",
             "content": [
                 {
-                    "type": "text",
-                    "text": "Describe this scene like you're a narrator in a movie",
-                },
-                {
                     "type": "image_url",
                     "image_url": {
                         "url": f"data:image/jpeg;base64,{base64_image}"
                     }
-                },
-            ],
-        },
+                }
+                for base64_image in base64_images 
+            ]
+        }
     ]
-
 
 def resize_image(image, max_width=500):
     # Get the dimensions of the image
@@ -234,17 +238,21 @@ def process_frames(queue):
 
         if not ret:
             break
-        print("----capturing----")
+        
+        images = []
+        for i in range(4):
+            print(f'capturing image {i}')
+            filename = f'frame{i}.jpg'
+            cv2.imwrite(filename, frame)
 
-        filename = "frame.jpg"
-        cv2.imwrite(filename, frame)
-
-        resized_frame = resize_image(frame)
-        retval, buffer = cv2.imencode(".jpg", resized_frame)
-        base64_image = base64.b64encode(buffer).decode("utf-8")
-        gpt_4_output = pass_to_gpt4_vision(base64_image, script)
-        script = script + [{"role": "assistant", "content": gpt_4_output}]
-        print("script:", script)
+            resized_frame = resize_image(frame)
+            retval, buffer = cv2.imencode(".jpg", resized_frame)
+            base64_image = base64.b64encode(buffer).decode("utf-8")
+            
+            images.append(base64_image) 
+        
+        sentiment = random.choice(['happy', 'epic', 'sad'])
+        gpt_4_output = pass_to_gpt4_vision(images, sentiment)
 
         frame_count += 1
         queue.put(gpt_4_output)
