@@ -219,8 +219,8 @@ def webcam_capture(queue):
         print("Error: Webcam not accessible.")
         return
 
-    cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Webcam", cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("Photo Booth", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Photo Booth", cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
 
     subtitle_text = DEFAULT_START_SUBTITLE
     process_frames_running = False
@@ -302,7 +302,7 @@ def webcam_capture(queue):
                 freeze_frame_until = None
 
         frame_with_subtitle = add_subtitle(frame, frame_count, subtitle_text, show_countdown=(program_running and not process_frames_running))
-        cv2.imshow("Webcam", frame_with_subtitle)
+        cv2.imshow("Photo Booth", frame_with_subtitle)
         # print(frame.shape)
 
 

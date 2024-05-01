@@ -1,13 +1,13 @@
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from moviepy.video.compositing.transitions import fadein, fadeout
 import cv2
+from ftfy import fix_text
 
 # testing
 import os
 from elevenlabs import generate, set_api_key
 from dotenv import load_dotenv
 from env import *
-from ftfy import fix_text
 
 # load_dotenv()
 # set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
