@@ -8,3 +8,4 @@ annotated_frame*.json
 env.py
 story.mp4
 play_video.py
+__pycache__/
