@@ -2,3 +2,6 @@
 frame_0.jpg
 frame.jpg
 narration/
+frame*.jpg
+audio*.wav
+annotated_frame*.json
