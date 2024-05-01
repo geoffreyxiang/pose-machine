@@ -9,6 +9,7 @@ class QueueEventTypes(Enum):
   KILL_FRAME_PROCESSING = 6
   PROCESS_IMAGES = 7
   PROCESSING_DONE = 8
+  VIDEO_DONE = 9
 
 class QueueEvent():
   def __init__(self, type, payload):

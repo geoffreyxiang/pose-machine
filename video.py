@@ -1,4 +1,4 @@
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips, CompositeAudioClip
 from moviepy.video.compositing.transitions import fadein, fadeout
 import cv2
 from ftfy import fix_text
@@ -83,21 +83,60 @@ def add_text_to_image(image_path, text, save_as, max_line_length=30):
 
     cv2.imwrite(save_as, image)
 
-def make_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duration=0.5):
+def make_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duration=0.5, background_music_path = None):
     clips = [make_clip(img, aud, text, use_audio) for img, aud, text in zip(image_paths, audio_paths, subtitles)]
 
     # apply crossfade effect to clips
     faded_clips = [fadeout(clips[0], duration=fade_duration)] + [fadeout(fadein(clip, duration=fade_duration), duration=fade_duration) for clip in clips[1:]]
     final_clip = concatenate_videoclips(faded_clips, method="compose")
 
+    if background_music_path != None:
+        if final_clip.audio != None:
+            final_clip.audio.write_audiofile("final_audio.mp3", fps = 22050)
+            merge_audio_files(background_music_path, "final_audio.mp3") # writes to another audio file
+            mixed_audio = AudioFileClip("./mixed_audio.wav", fps = 22050)
+        else:
+            mixed_audio = AudioFileClip(background_music_path, fps = 22050)
+        final_duration = final_clip.duration
+        final_clip = final_clip.set_audio(mixed_audio)
+        final_clip = final_clip.set_duration(final_duration)
+
     # write final video
-    final_clip.write_videofile("story.mp4", fps=24)
+    final_clip.preview()
+    # final_clip.write_videofile("story.mp4", fps=24)
+
+    return final_clip
+
+def merge_audio_files(path1, path2):
+    from pydub import AudioSegment
+
+    # Load the two audio clips
+    clip1 = AudioSegment.from_file(path1)
+    clip2 = AudioSegment.from_file(path2)
+
+    # Ensure both audio clips have the same sample rate
+    clip1 = clip1.set_frame_rate(22050)
+    clip2 = clip2.set_frame_rate(22050)
+
+    # Ensure both audio clips have the same number of channels
+    clip1 = clip1.set_channels(2)
+    clip2 = clip2.set_channels(2)
+
+    # Adjust the volume of each clip if necessary (optional)
+    clip1 = clip1 - 15  # Increase volume of clip1 by 6 dB
+    # clip2 = clip2 - 3  # Decrease volume of clip2 by 3 dB
+
+    # Mix the two audio clips together
+    mixed_clip = clip1.overlay(clip2)
+
+    # Export the mixed audio clip to a file
+    mixed_clip.export("mixed_audio.wav", format="wav")
 
 subtitles = ['a spirited adventure.', 'The upbeat tempo rises.', 'Caught in a lively rhythm.', 'reflected in his satisfied smirk.']
 
 # generate audio files
 # audio_success = True
-# try: 
+# try:
 #     for i in range(len(subtitles)):
 #         audio = generate(subtitles[i], voice=os.environ.get("ELEVENLABS_VOICE_ID"))
 
@@ -110,3 +149,5 @@ subtitles = ['a spirited adventure.', 'The upbeat tempo rises.', 'Caught in a li
 
 # if audio_success:
 #     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
+# make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, background_music_path="./funny.mp3", use_audio=False)
+# merge_audio_files()
