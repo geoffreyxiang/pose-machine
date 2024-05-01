@@ -48,17 +48,17 @@ def pass_to_gpt4_vision(base64_images, sentiment):
             {
                 "role": "system",
                 "content": ("""
-The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story. 
-Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion. 
-You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate. 
-There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. 
+The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story.
+Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion.
+You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate.
+There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image.
           """ + get_sentiment_prompt(sentiment)).strip(),
             },
         ]
         + format_images_for_gpt4_vision(base64_images),
         "max_tokens": 300,
     }
-    
+
     response = requests.post(
         "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
@@ -125,7 +125,7 @@ def format_images_for_gpt4_vision(base64_images):
                         "url": f"data:image/jpeg;base64,{base64_image}"
                     }
                 }
-                for base64_image in base64_images 
+                for base64_image in base64_images
             ]
         }
     ]
@@ -239,7 +239,7 @@ def process_frames(queue):
 
         if not ret:
             break
-        
+
         images = []
         for i in range(4):
             print(f'capturing image {i}')
@@ -249,8 +249,6 @@ def process_frames(queue):
             resized_frame = resize_image(frame)
             retval, buffer = cv2.imencode(".jpg", resized_frame)
             base64_image = base64.b64encode(buffer).decode("utf-8")
-            
-            images.append(base64_image) 
         
         gpt_4_output = pass_to_gpt4_vision(images, random.choice(sentiments))
 
@@ -267,6 +265,29 @@ def process_frames(queue):
 
     cap.release()
 
+def play_test_video(queue):
+    cap = cv2.VideoCapture("./test_video.MOV")
+    print("Check 1")
+    if not cap.isOpened():
+        print("Error: Webcam not accessible.")
+        return
+
+    cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Webcam", cv2.WND_PROP_AUTOSIZE, cv2.WINDOW_AUTOSIZE)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
+        if not ret:
+            break
+
+        cv2.imshow('Webcam', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 def main():
     queue = Queue()
