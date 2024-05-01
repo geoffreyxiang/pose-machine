@@ -17,6 +17,7 @@ load_dotenv()
 api_key = os.environ.get("OPENAI_API_KEY")
 set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
 
+sentiments = ["happy", "sad", "epic"]
 
 def play_music(track_path):
     # Initialize pygame mixer
@@ -50,7 +51,7 @@ def pass_to_gpt4_vision(base64_images, sentiment):
 The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story. 
 Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion. 
 You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate. 
-There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. Use words that are simple. 
+There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. 
           """ + get_sentiment_prompt(sentiment)).strip(),
             },
         ]
@@ -105,10 +106,13 @@ def play_audio(text):
 
 def get_sentiment_prompt(sentiment):
     with open('./prompts.json', 'r') as file:
-        sentiments = json.load(file)
-        return sentiments[sentiment]["prompt"]
+        data = json.load(file)
+        return data[sentiment]["prompt"]
 
-
+def parse_gpt4_response(text):
+    res = text.split('\n\n')
+    assert len(res) == 4, f'{len(res)} chunks detected instead of 4'
+    return res
 
 def format_images_for_gpt4_vision(base64_images):
     return [
@@ -229,12 +233,9 @@ def process_frames(queue):
         return
 
     frame_count = 0
-    script = []
     while True:
         ret, frame = cap.read()
         frame = cv2.flip(frame, 1)
-
-        # frame = add_faces(frame)
 
         if not ret:
             break
@@ -251,8 +252,13 @@ def process_frames(queue):
             
             images.append(base64_image) 
         
-        sentiment = random.choice(['happy', 'epic', 'sad'])
-        gpt_4_output = pass_to_gpt4_vision(images, sentiment)
+        gpt_4_output = pass_to_gpt4_vision(images, random.choice(sentiments))
+
+        subtitles = parse_gpt4_response(gpt_4_output)
+        print(subtitles)
+        # for nick:
+        # the 'images' list contains the 4 images that were taken
+        # the 'subtitles' list contains the 4 corresponding subtitles for the images
 
         frame_count += 1
         queue.put(gpt_4_output)
