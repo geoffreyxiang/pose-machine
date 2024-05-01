@@ -1,14 +1,18 @@
 {
     "happy": {
-        "prompt": "Make the story really exciting since the characters are feeling happy. Pretend there is lively music playing in the background. The music isn't actually playing in the scene. It is just to set the tone.",
-        "audio": ".mp3"
+        "prompt": "Make the story really exciting since the character(s) are feeling happy.",
+        "audio": "happy.mp3"
     },
     "epic": {
-        "prompt": "Make the story really awesome, while really making the characters feel epic. As you narrate, pretend there is an epic Hans Zimmer song playing in the background. The music isn't actually playing in the scene. It is just to set the tone.",
-        "audio": ".mp3"
+        "prompt": "Make the story really awesome, while really making the character(s) feel epic. As you narrate, pretend there is an epic Hans Zimmer song playing in the background. The music isn't actually playing in the scene. It is just to set the tone.",
+        "audio": "epic.mp3"
     },
-    "sad": {
-        "prompt": "Make the story somber since the characters are feeling sad. Pretend there is a sad piano playing in the background as you are narrating. This music isn't actually playing in the scene. It is just to set the tone.",
-        "audio": ".mp3"
+    "funny": {
+        "prompt": "Make the story really funny and comedic.",
+        "audio": "funny.mp3"
+    },
+    "mysterious": {
+        "prompt": "Make the story mysterious. The character(s) are feeling enigmatic.",
+        "audio": "mysterious.mp3"
     }
 }

@@ -26,7 +26,7 @@ set_api_key(ELEVENLABS_API_KEY)
 CAPTURE_TIME_BUFFER = 3
 CAPTURE_EVERY_X_FRAMES = 30 * CAPTURE_TIME_BUFFER
 DEFAULT_START_SUBTITLE = "Hold 's' to begin"
-SENTIMENTS = ["happy", "sad", "epic"]
+SENTIMENTS = ["happy", "epic", "funny", "mysterious"]
 
 def play_music(track_path):
     print(f"Playing track {track_path}")
@@ -62,7 +62,7 @@ def pass_to_gpt4_vision(base64_images, sentiment):
 The user will submit 4 images. Use the first image to serve as the introduction. Craft an introduction to the characters in the image. Use the next two images to serve as the body of the story.
 Narrate each image individually, but make a coherent storyline throughout. Finally, use the last image to make a satisfying conclusion.
 You may be creative with interpreting the images, but ensure that the characters and gestures depicted are accurate. Do not give any characters names. The characters must be nameless.
-There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image.
+There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 words. Don't use the word image. In your response, you should only have the 4 paragraphs. 
           """ + get_sentiment_prompt(sentiment)).strip(),
             },
         ]
@@ -74,6 +74,7 @@ There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 word
         "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
     )
     gpt_4_output = response.json()["choices"][0]["message"]["content"]
+    print(f'chosen sentiment: {sentiment}')
     return gpt_4_output
 
 def generate_new_line(base64_image):
