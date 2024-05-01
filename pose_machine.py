@@ -29,7 +29,7 @@ DEFAULT_START_SUBTITLE = "Hold 's' to begin"
 SENTIMENTS = ["happy", "epic", "funny", "mysterious"]
 
 def play_music(track_path):
-    print(f"Playing track {track_path}")
+    print(f"Playing track {track_path}") # NOTE: nick wtf is this
     # Initialize pygame mixer
     pygame.mixer.init()
 
@@ -76,24 +76,6 @@ There should be 4 chunks to this story, 1 per image. Limit each chunk to 40 word
     gpt_4_output = response.json()["choices"][0]["message"]["content"]
     print(f'chosen sentiment: {sentiment}')
     return gpt_4_output
-
-def generate_new_line(base64_image):
-    return [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Describe this scene like you're a narrator in a movie",
-                },
-                {
-                    "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
-                },
-            ],
-        },
-    ]
-
 
 def resize_image(image, max_width=500):
     # Get the dimensions of the image
@@ -178,6 +160,11 @@ def get_sentiment_prompt(sentiment):
     with open('./prompts.json', 'r') as file:
         data = json.load(file)
         return data[sentiment]["prompt"]
+
+def get_sentiment_voice_id(sentiment):
+    with open('./prompts.json', 'r') as file:
+        data = json.load(file)
+        return data[sentiment]["voice_id"]
 
 def parse_gpt4_response(text):
     res = text.split('\n\n')
@@ -341,7 +328,9 @@ def process_frames(conn):
     # print(f"Received payload {payload}")
 
     # payload should be a list of base64 encoded images to pass into gpt4 vision
-    gpt_4_output = pass_to_gpt4_vision(payload["images"], random.choice(SENTIMENTS))
+    chosen_sentiment = random.choice(SENTIMENTS)
+    chosen_sentiment = "mysterious"
+    gpt_4_output = pass_to_gpt4_vision(payload["images"], chosen_sentiment)
 
     subtitles = parse_gpt4_response(gpt_4_output)
     print(subtitles)
@@ -350,7 +339,7 @@ def process_frames(conn):
     audio_success = True
     try: 
         for i in range(len(subtitles)):
-            audio = generate(subtitles[i], voice=ELEVENLABS_VOICE_ID)
+            audio = generate(subtitles[i], voice=get_sentiment_voice_id(chosen_sentiment)) 
 
             with open(f'audio{i}.wav', "wb") as f:
                 print('generating audio for file:', i)
@@ -363,7 +352,7 @@ def process_frames(conn):
         
     # programmatically create and save a video with audio
     if audio_success:
-        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=True)
+        make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
 
     conn.send((QueueEventTypes.PROCESSING_DONE, { "video_file": "./story.mp4" }))
 

@@ -109,4 +109,4 @@ subtitles = ['a spirited adventure.', 'The upbeat tempo rises.', 'Caught in a li
 #     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
 
 # if audio_success:
-#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=True)
+#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
