@@ -1,24 +1,28 @@
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips, CompositeAudioClip
+"""
+Manages the video creation process after the audio voiceovers have been generated
+"""
+
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from moviepy.video.compositing.transitions import fadein, fadeout
 import cv2
 from ftfy import fix_text
+import time
+from pydub import AudioSegment
 
-# testing
 import os
 from elevenlabs import generate, set_api_key
 from dotenv import load_dotenv
 from env import *
 
-# load_dotenv()
-# set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
-
 def make_clip(image_path, audio_path, text, use_audio):
+    # Creates an image clip with audio voiceover
+
     # initialize audio clip
     audio_clip = AudioFileClip(audio_path, fps=22050)
 
     # edit image to have text
-    image_with_text_path = f'annotated_{image_path}'
-    add_text_to_image(image_path, text, image_with_text_path)
+    image_with_text_path = f'annotated_frame.jpg'
+    image = add_text_to_image(image_path, text, image_with_text_path)
 
     # initialize image clip with duration of audio clip
     image_clip = ImageClip(image_with_text_path)
@@ -32,6 +36,7 @@ def make_clip(image_path, audio_path, text, use_audio):
     return image_clip
 
 def add_text_to_image(image_path, text, save_as, max_line_length=30):
+    # Superimposes the provided text on the image and saves it to the `save_as` file path
     image = cv2.imread(image_path)
 
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -82,8 +87,10 @@ def add_text_to_image(image_path, text, save_as, max_line_length=30):
         )
 
     cv2.imwrite(save_as, image)
+    return image
 
-def make_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duration=0.5, background_music_path = None):
+def make_and_show_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duration=0.5, background_music_path = None):
+    # Creates a video using the provided images and audio voiceovers. Then displays it for the user
     clips = [make_clip(img, aud, text, use_audio) for img, aud, text in zip(image_paths, audio_paths, subtitles)]
 
     # apply crossfade effect to clips
@@ -101,18 +108,15 @@ def make_video(image_paths, audio_paths, subtitles, use_audio=True, fade_duratio
         final_clip = final_clip.set_audio(mixed_audio)
         final_clip = final_clip.set_duration(final_duration)
 
-    # write final video
+    # show the final video
     final_clip.preview()
-    # final_clip.write_videofile("story.mp4", fps=24)
 
     return final_clip
 
-def merge_audio_files(path1, path2):
-    from pydub import AudioSegment
-
+def merge_audio_files(audio_path1, audio_path2):
     # Load the two audio clips
-    clip1 = AudioSegment.from_file(path1)
-    clip2 = AudioSegment.from_file(path2)
+    clip1 = AudioSegment.from_file(audio_path1)
+    clip2 = AudioSegment.from_file(audio_path2)
 
     # Ensure both audio clips have the same sample rate
     clip1 = clip1.set_frame_rate(22050)
@@ -131,23 +135,3 @@ def merge_audio_files(path1, path2):
 
     # Export the mixed audio clip to a file
     mixed_clip.export("mixed_audio.wav", format="wav")
-
-subtitles = ['a spirited adventure.', 'The upbeat tempo rises.', 'Caught in a lively rhythm.', 'reflected in his satisfied smirk.']
-
-# generate audio files
-# audio_success = True
-# try:
-#     for i in range(len(subtitles)):
-#         audio = generate(subtitles[i], voice=os.environ.get("ELEVENLABS_VOICE_ID"))
-
-#         with open(f'audio{i}.wav', "wb") as f:
-#             print('generating for file:', i)
-#             f.write(audio)
-# except:
-#     audio_success = False
-#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, use_audio=False)
-
-# if audio_success:
-#     make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles)
-# make_video([f'frame{i}.jpg' for i in range(4)], [f'audio{i}.wav' for i in range(4)], subtitles, background_music_path="./funny.mp3", use_audio=False)
-# merge_audio_files()

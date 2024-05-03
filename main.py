@@ -1,32 +1,24 @@
-import base64
-import os
-from multiprocessing import Process, Queue, Pipe
+from multiprocessing import Process, Pipe
 
 import cv2
-import numpy as np
 import pygame
 import requests
-import time
-from dotenv import load_dotenv
 from elevenlabs import generate, set_api_key
 from queue_objects import QueueEventTypes
 import json
 import random
 from video import make_and_show_video
-from moviepy.editor import VideoFileClip
-from gpt_utils import pass_to_gpt4_vision, parse_gpt4_response
-from image_utils import resize_image, add_subtitle
+from gpt_utils import pass_to_gpt4_vision, parse_gpt4_response, get_sentiment_voice_id
+from image_utils import  add_subtitle
 from program_state import ProgramState
 
 from env import *
 
-load_dotenv()
 api_key = OPENAI_API_KEY
 
-# set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
 set_api_key(ELEVENLABS_API_KEY)
 
-
+# Plays music from a given sound track either infinitely or only once (sound effects)
 def play_music(track_path, loop = True, volume = 0.2):
     """
     Plays music according to the provided track path. Note that this music playing is blocking,
@@ -48,31 +40,14 @@ def play_music(track_path, loop = True, volume = 0.2):
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)  # You can adjust the tick rate as needed
 
-def get_sentiment_voice_id(sentiment):
-    with open('./prompts.json', 'r') as file:
-        data = json.load(file)
-        return data[sentiment]["voice_id"]
-
-
+# Spawns a new process to play an audio file
 def spawn_process_and_play(audio_file, loop = True, volume = 0.2):
     music_process = Process(target=play_music, args=(audio_file, loop, volume))
     music_process.start()
     return music_process
 
-def play_video(video_path):
-    clip = VideoFileClip(video_path)
-    clip.preview()
-
-# Create a separate process to
-def spawn_process_and_play_video(video_path):
-    video_process = Process(target=play_video, args=(video_path, ))
-    video_process.start()
-
-    return video_process
-
+# Main entry point for application - controls webcam input
 def webcam_capture():
-    # chosen_sentiment = "funny" # Default value, will be changed later
-
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -85,30 +60,17 @@ def webcam_capture():
 
     state = ProgramState()
 
-    # subtitle_text = DEFAULT_START_SUBTITLE
-    # process_frames_running = False
-    # frames_process = None
-    # frame_count = 0
-    # program_running = False
-    # images = []
-    # video_playing = True
-    # freeze_frame_until = None # if not None, we're freezing the frame until this time
-
-    # # Sentiment music
-    # sentiment_music_proc = None
-    # sentiment_music_playing = False
-
     # create pipe for communicating between webcam (parent) and process_frame (child) processes
     parent_conn, child_conn = Pipe()
 
     while True:
         if not state.is_frame_frozen():
-            ret, frame = cap.read()
+            ret, frame = cap.read() # reads a frame from the web cam
             frame = cv2.flip(frame, 1)
             if not ret:
                 break
         else:
-            frame = state.get_frozen_frame().copy()
+            frame = state.get_frozen_frame().copy() # if the frame is in a frozen state, we simply get the saved frame
 
         if state.is_program_running():
             if state.num_images_stored() < 4:
@@ -119,20 +81,10 @@ def webcam_capture():
                     spawn_process_and_play("./camera_click.mp3", loop = False, volume = 1)
                     print("----capturing----")
 
+                    # Store the frame and save a copy to local directory
                     state.store_image(frame)
-                    # Write the frame to disk to use in the video production
-                    # filename = f"./tmp/frame{len(images)}.jpg"
-                    # cv2.imwrite(filename, frame)
-
-                    # Convert the image into base86 and save it for inputting it into an LLM later
-                    # resized_frame = resize_image(frame)
-                    # retval, buffer = cv2.imencode(".jpg", resized_frame)
-                    # base64_image = base64.b64encode(buffer).decode("utf-8")
-
-                    # images.append(base64_image)
 
                     # Freeze the frame to show the user what image will be used
-                    # freeze_frame_until = time.time() + 3, frame.copy()
                     state.freeze_frame(frame)
                 else:
                     state.subtitle_text = "Pose!"
@@ -150,19 +102,15 @@ def webcam_capture():
 
         else:
             # Reset all variables
-            # subtitle_text = DEFAULT_START_SUBTITLE
-            # images = []
             state.reset_state_variables()
 
-        # sentiment_music_playing = state.sentiment_music_proc != None and state.sentiment_music_proc.is_alive()
-        if not state.is_sentiment_music_running() and not state.is_program_running(): # when we finish a cycle, we should select a new sentiment
+        # when we finish a cycle, we should select a new sentiment
+        if not state.is_sentiment_music_running() and not state.is_program_running():
             state.chosen_sentiment = random.choice(SENTIMENTS)
             print(f"Chosen sentiment {state.chosen_sentiment}")
 
             # Background music for the chosen sentiment
             state.sentiment_music_proc = spawn_process_and_play(state.get_sentiment_music_path())
-            # state.sentiment_music_proc.start()
-            # state.sentiment_music_proc.join()
 
         # We use this to check if frame processing (child process) is done, in which case we'll reset the program
         if parent_conn.poll():
@@ -171,26 +119,14 @@ def webcam_capture():
 
             if event == QueueEventTypes.PROCESSING_DONE:
                 state.kill_sentiment_music_if_alive()
-                # if sentiment_music_playing:
-                #     sentiment_music_proc.kill()
-                # video_process = spawn_process_and_play_video(payload["video_file"])
-                # video_process.join() # wait until video is done before continuing
+
             elif event == QueueEventTypes.VIDEO_DONE:
                 state.reset_state_variables()
                 state.kill_sentiment_music_if_alive()
                 state.program_running = False
-                # if sentiment_music_playing:
-                #     sentiment_music_proc.kill()
-                # program_running = False
-                # images = []
 
-        # process_frames_running = frames_process != None and frames_process.is_alive()
 
-        # if freeze_frame_until != None:
-        #     frame = freeze_frame_until[1].copy()
-        #     if time.time() > freeze_frame_until[0]:
-        #         freeze_frame_until = None
-
+        # Adds subtitles to the frame shown to the user
         frame_with_subtitle = add_subtitle(frame, state.frame_count, state.subtitle_text, show_countdown=(state.is_program_running() and not state.is_process_frames_running()))
         cv2.imshow("Pose Machine", frame_with_subtitle)
 
@@ -200,17 +136,7 @@ def webcam_capture():
         elif state.is_program_running() and cv2.waitKey(1) & 0xFF == ord("r"):
             # Restart and go to program start
             state.reset_state()
-            # state.program_running = False
-            # freeze_frame_until = None
-            # if process_frames_running:
-            #     frames_process.kill()
-            # if sentiment_music_playing:
-            #     sentiment_music_proc.kill()
         if cv2.waitKey(1) & 0xFF == ord("q"):
-            # if process_frames_running:
-            #     frames_process.kill()
-            # if sentiment_music_playing:
-            #     sentiment_music_proc.kill()
             state.reset_state()
             break
 
@@ -220,7 +146,8 @@ def webcam_capture():
     cap.release()
     cv2.destroyAllWindows()
 
-
+# Function used for a process to create the story for the stored frames
+# It will also call other functions to create a video based on the GPT-generated story
 def process_frames(conn, chosen_sentiment):
     if not conn.poll(5000):
         return
@@ -261,9 +188,6 @@ def process_frames(conn, chosen_sentiment):
 
     video.write_videofile("story.mp4", fps=24)
     # send_to_slack("story.mp4")
-
-def save_videofile(video):
-    video.write_videofile("story.mp4", fps=24)
 
 def send_to_slack(video_file):
     """

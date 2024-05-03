@@ -1,6 +1,9 @@
+"""
+Utility functions for modifying images
+"""
+
 import cv2
 from env import CAPTURE_TIME_BUFFER, CAPTURE_EVERY_X_FRAMES
-
 
 def resize_image(image, max_width=500):
     """

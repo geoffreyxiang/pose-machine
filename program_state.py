@@ -5,6 +5,10 @@ from image_utils import resize_image
 import time
 
 class ProgramState():
+  """
+  This class helps manage state changes when the pose machine is running, for example freezing frames and tracking which
+  subtitles to display on the image
+  """
   def __init__(self):
     self.subtitle_text = DEFAULT_START_SUBTITLE
     self.frames_process = None

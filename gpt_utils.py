@@ -1,8 +1,10 @@
+"""
+Utility functions for managing function calls to GPT4
+"""
+
 import requests
 import json
 from env import *
-
-
 
 api_key = OPENAI_API_KEY
 
@@ -10,6 +12,11 @@ def get_sentiment_prompt(sentiment):
     with open('./prompts.json', 'r') as file:
         data = json.load(file)
         return data[sentiment]["prompt"]
+
+def get_sentiment_voice_id(sentiment):
+    with open('./prompts.json', 'r') as file:
+        data = json.load(file)
+        return data[sentiment]["voice_id"]
 
 def format_images_for_gpt4_vision(base64_images):
     return [
