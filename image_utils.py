@@ -3,6 +3,9 @@ from env import CAPTURE_TIME_BUFFER, CAPTURE_EVERY_X_FRAMES
 
 
 def resize_image(image, max_width=500):
+    """
+    Resizes and returns the provided image with the maximum width
+    """
     # Get the dimensions of the image
     height, width = image.shape[:2]
 
@@ -18,6 +21,9 @@ def resize_image(image, max_width=500):
 
 
 def add_subtitle(image, frame_count, text="", show_countdown = True, max_line_length=40):
+    """
+    Adds subtitle text to the image at the bottom and inserts a countdown depending on the frame count
+    """
     countdown_seconds = CAPTURE_TIME_BUFFER - (frame_count % CAPTURE_EVERY_X_FRAMES) // 30  # Convert frame count to seconds
 
     font = cv2.FONT_HERSHEY_SIMPLEX

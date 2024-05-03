@@ -4,7 +4,7 @@ frame.jpg
 narration/
 frame*.jpg
 audio*.wav
-annotated_frame*.json
+annotated_frame*.jpg
 env.py
 story.mp4
 play_video.py
