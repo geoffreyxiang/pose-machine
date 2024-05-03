@@ -101,4 +101,4 @@ class ProgramState():
     # return self.sentiment_music_playing
 
   def get_sentiment_music_path(self):
-    return f"{self.chosen_sentiment}.mp3"
+    return f"./audio/{self.chosen_sentiment}.mp3"

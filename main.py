@@ -78,7 +78,7 @@ def webcam_capture():
                     state.subtitle_text = "Captured! Taking another photo soon..."
                 elif state.frame_count % CAPTURE_EVERY_X_FRAMES == 0:
                     # Play a camera click sound effect
-                    spawn_process_and_play("./camera_click.mp3", loop = False, volume = 1)
+                    spawn_process_and_play("./audio/camera_click.mp3", loop = False, volume = 1)
                     print("----capturing----")
 
                     # Store the frame and save a copy to local directory
